@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F2F2F2"> 
+    <title>Calorie & Weight Tracker</title>
+    
+    <!-- PWA Manifest Link (NEW) -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- PWA Icons for iOS (NEW) -->
+    <link rel="apple-touch-icon" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcnk9IjE2IiBmaWxsPSIjRjIyMjIyMiIvPjxwYXRoIGQ9Ik05NiAxNjBWMzkgQTEgMSAwIDAgMSAxMDggMzkgQTEgMSAwIDAgMSA5NiAzOVoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQTQwMCIgc3Ryb2tlLXdpZHRoPSIyMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTc2IDkwTDQ2IDkwIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkE0MDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xNDYgOTBMMTE2IDkwIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkE0MDAiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik04MiAxMjBMMTEwIDEyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZBNTAwIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=">
+    
+    <!-- DM Mono Font -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Color Palette */
+            --bg-light: #F2F2F2; 
+            --card-bg: #E0E0E0; 
+            --accent-orange: #FF8C00; 
+            --dark-gray: #333333; 
+            --light-text: #333333; 
+            --medium-text: #666666; 
+            --border-light: #CCCCCC; 
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: 'DM Mono', monospace; 
+            color: var(--dark-gray);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-light);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F2F2F2; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CCCCCC; 
+            border-radius: 4px;
+        }
+        input {
+            color-scheme: light;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <div class="max-w-5xl mx-auto p-4 md:p-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold" style="color: var(--dark-gray);">Nutrition Dashboard</h1>
+                <p class="text-sm" style="color: var(--medium-text);">Track calories & weight trends</p>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="flex items-center card px-3 py-2 rounded-lg flex-grow md:flex-grow-0">
+                    <span class="text-xs mr-2" style="color: var(--medium-text);">Target:</span>
+                    <input 
+                        type="number" 
+                        id="dailyTargetInput" 
+                        value="2000" 
+                        onchange="updateTarget(this.value)"
+                        class="bg-transparent w-16 font-bold outline-none text-right text-sm"
+                        style="color: var(--dark-gray);"
+                    >
+                    <span class="text-xs ml-1" style="color: var(--medium-text);">kcal</span>
+                </div>
+                <button onclick="exportCSV()" class="bg-[#FF8C00] hover:bg-[#E67D00] text-white p-2 rounded-lg transition-colors shadow-lg flex items-center justify-center">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- Today's Calories -->
+            <div class="card rounded-xl p-5">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-xs font-medium uppercase tracking-wider" style="color: var(--medium-text);">Calories Today (kcal)</h3>
+                    <i data-lucide="utensils" class="w-4 h-4" style="color: var(--medium-text);"></i>
+                </div>
+                <div class="text-3xl font-bold mb-1" id="statToday" style="color: var(--dark-gray);">0</div>
+                <div class="flex items-center text-xs" id="statTodaySub" style="color: var(--medium-text);">
+                    / 2000 kcal target
+                </div>
+            </div>
+
+            <!-- Average -->
+            <div class="card rounded-xl p-5">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-xs font-medium uppercase tracking-wider" style="color: var(--medium-text);">7-Day Avg (kcal)</h3>
+                    <i data-lucide="activity" class="w-4 h-4" style="color: var(--medium-text);"></i>
+                </div>
+                <div class="text-3xl font-bold mb-1" id="statAvg" style="color: var(--dark-gray);">0</div>
+                <div class="text-xs" style="color: var(--medium-text);">Daily intake</div>
+            </div>
+
+            <!-- Progress -->
+            <div class="card rounded-xl p-5 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-xs font-medium uppercase tracking-wider" style="color: var(--medium-text);">Daily Goal Progress</h3>
+                    <span class="text-xl font-bold" id="progressPercent" style="color: var(--dark-gray);">0%</span>
+                </div>
+                <div class="w-full bg-[#CCCCCC] h-2 mt-4 rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full rounded-full transition-all duration-500" style="width: 0%; background-color: var(--accent-orange);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Trend Chart -->
+            <div class="card rounded-xl p-4 lg:col-span-2">
+                <h3 class="font-semibold mb-4 text-sm" style="color: var(--dark-gray);">Calorie Trend (kcal)</h3>
+                <div class="h-[250px] w-full relative">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Breakdown Chart -->
+            <div class="card rounded-xl p-4">
+                <h3 class="font-semibold mb-4 text-sm" style="color: var(--dark-gray);">Meal Breakdown (kcal)</h3>
+                <div class="h-[200px] w-full relative flex justify-center">
+                    <canvas id="breakdownChart"></canvas>
+                </div>
+                <div id="legendContainer" class="flex flex-wrap justify-center gap-2 mt-4 text-xs" style="color: var(--medium-text);"></div>
+            </div>
+        </div>
+
+        <!-- Weight Chart Section -->
+        <div class="card rounded-xl p-4 mb-6">
+            <h3 class="font-semibold mb-4 text-sm" style="color: var(--dark-gray);">Weight Analysis (Weekly Avg in kg)</h3>
+            <div class="h-[250px] w-full relative">
+                <canvas id="weightChart"></canvas>
+            </div>
+            <p class="text-xs mt-2 text-center" style="color: var(--medium-text);">Showing weekly averages for the last 30 days</p>
+        </div>
+        
+        <!-- Data Entry -->
+        <div class="card rounded-xl p-4 md:p-6 mb-6">
+            <h3 class="font-semibold mb-4" style="color: var(--dark-gray);">Log Entries</h3>
+            
+            <!-- Input Form -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6 bg-[#CCCCCC] p-3 rounded-lg items-end border border-white/5">
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Date</label>
+                    <input type="date" id="inDate" 
+                           onchange="loadEntryByDate(this.value)" 
+                           class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <!-- Weight Input -->
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Weight (kg)</label>
+                    <input type="number" id="inWeight" step="0.1" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Breakfast (kcal)</label>
+                    <input type="number" id="inBk" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Snack (kcal)</label>
+                    <input type="number" id="inSn1" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Lunch (kcal)</label>
+                    <input type="number" id="inLu" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Snack (kcal)</label>
+                    <input type="number" id="inSn2" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <div>
+                    <label class="block text-[10px] mb-1 uppercase" style="color: var(--medium-text);">Dinner (kcal)</label>
+                    <input type="number" id="inDi" placeholder="0" class="w-full bg-white border border-gray-400 rounded px-2 py-1.5 text-sm focus:border-[#FF8C00] outline-none" style="color: var(--dark-gray);">
+                </div>
+                <button onclick="addEntry()" class="col-span-2 md:col-span-1 lg:col-span-1 bg-[#FF8C00] active:bg-[#E67D00] text-white py-2 rounded flex items-center justify-center transition-colors shadow-md h-[34px]">
+                    <i data-lucide="plus" class="w-4 h-4"></i> <span class="ml-1 text-sm font-medium">Add</span>
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[700px] md:min-w-full">
+                    <thead>
+                        <tr class="border-b border-gray-400 text-xs uppercase tracking-wider" style="color: var(--medium-text);">
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Date</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Weight (kg)</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Breakfast</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Snack</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Lunch</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Snack</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400">Dinner</th>
+                            <th class="py-3 px-2 font-medium border-r border-gray-400" style="color: var(--dark-gray);">Total (kcal)</th>
+                            <th class="py-3 px-2 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm" style="color: var(--dark-gray);">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Gemini AI Insight Section (Now at the end) -->
+        <div class="card rounded-xl p-4 md:p-6 mb-20">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                <h3 class="font-semibold text-sm uppercase tracking-wider" style="color: var(--dark-gray);">AI Performance Coach</h3>
+                <button id="analyzeBtn" onclick="generateWeeklyAnalysis()" class="bg-gray-700 hover:bg-gray-800 text-white py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center text-sm font-medium disabled:opacity-50 w-full sm:w-auto">
+                    <!-- Gemini Logo SVG -->
+                    <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.0001 0C12.0001 0 14.1354 7.64114 19.3879 10.9666C20.3117 11.5515 20.3117 12.4485 19.3879 13.0334C14.1354 16.3589 12.0001 24 12.0001 24C12.0001 24 9.86478 16.3589 4.61233 13.0334C3.68853 12.4485 3.68853 11.5515 4.61233 10.9666C9.86478 7.64114 12.0001 0 12.0001 0Z" fill="currentColor"/>
+                        <path d="M19.5 17.5C19.5 17.5 20.0339 19.4103 21.347 20.2416C21.5779 20.3879 21.5779 20.6121 21.347 20.7584C20.0339 21.5897 19.5 23.5 19.5 23.5C19.5 23.5 18.9661 21.5897 17.653 20.7584C17.4221 20.6121 17.4221 20.3879 17.653 20.2416C18.9661 19.4103 19.5 17.5 19.5 17.5Z" fill="currentColor"/>
+                    </svg>
+                    <span id="analyzeBtnText">Get Weekly Analysis</span>
+                    <span id="loadingSpinner" class="hidden ml-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    </span>
+                </button>
+            </div>
+            
+            <div id="analysisResult" class="p-4 mt-4 text-sm card bg-white/50 border-dashed border-2 border-gray-400 rounded-lg hidden">
+                <p id="analysisText" class="mb-3 whitespace-pre-wrap font-medium" style="color: var(--dark-gray);"></p>
+                <div id="analysisSources" class="text-[10px] text-gray-600 border-t border-gray-300 pt-2 mt-3 hidden">
+                    <span class="font-medium block mb-1">Sources:</span>
+                    <div id="analysisSourcesList"></div>
+                </div>
+            </div>
+            <p id="analysisPlaceholder" class="text-xs text-center p-4" style="color: var(--medium-text);">
+                Click 'Get Weekly Analysis' to receive AI-powered insights and tips based on your last 7 days of logged data.
+            </p>
+        </div>
+        
+        <!-- Custom Modal -->
+        <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full" style="color: var(--dark-gray);">
+                <h4 id="modalTitle" class="text-lg font-bold mb-3"></h4>
+                <p id="modalMessage" class="mb-5 text-sm"></p>
+                <div id="modalButtons" class="flex justify-end gap-3"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Global constants for API
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+        const apiKey = ""; // Canvas environment will provide the key
+        
+        // --- State Management ---
+        const STORAGE_KEY = 'calorie_tracker_v2'; 
+        const TARGET_KEY = 'calorie_target_v1';
+        
+        let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        
+        // Migrate old data if v2 is empty but v1 exists (Optional safety check)
+        if (entries.length === 0) {
+            const oldEntries = JSON.parse(localStorage.getItem('calorie_tracker_v1') || '[]');
+            if (oldEntries.length > 0) {
+                entries = oldEntries.map(e => ({...e, weight: null})); // Add weight field
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+            }
+        }
+
+        let dailyTarget = parseInt(localStorage.getItem(TARGET_KEY) || '2000');
+        
+        // --- Charts Instances ---
+        let trendChartInst = null;
+        let breakdownChartInst = null;
+        let weightChartInst = null;
+
+        // --- Date Formatting Helpers ---
+        
+        // Formats date to the requested style: "27 Nov, 2025"
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            // Use replace to ensure consistent local time interpretation across browsers
+            const date = new Date(dateString.replace(/-/g, '/'));
+            const day = date.getDate();
+            const month = date.toLocaleDateString('en-US', { month: 'short' });
+            const year = date.getFullYear();
+            return `${day} ${month}, ${year}`;
+        }
+        
+        // Formats date for chart labels to prevent clutter: "27 Nov"
+        function formatChartDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString.replace(/-/g, '/'));
+            const day = date.getDate();
+            const month = date.toLocaleDateString('en-US', { month: 'short' });
+            return `${day} ${month}`;
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inDate').value = today;
+            document.getElementById('dailyTargetInput').value = dailyTarget;
+
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            loadEntryByDate(today); 
+            renderAll();
+        });
+
+        // --- Custom Modal ---
+        function showModal(title, message, isConfirm, callback) {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            const buttonsContainer = document.getElementById('modalButtons');
+            buttonsContainer.innerHTML = '';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'bg-[#CCCCCC] hover:bg-[#B3B3B3] text-gray-800 font-medium py-2 px-4 rounded transition-colors text-sm';
+            closeBtn.innerText = isConfirm ? 'Cancel' : 'Close';
+            closeBtn.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+            buttonsContainer.appendChild(closeBtn);
+
+            if (isConfirm) {
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'bg-[#FF8C00] hover:bg-[#E67D00] text-white font-medium py-2 px-4 rounded transition-colors text-sm';
+                confirmBtn.innerText = 'Confirm';
+                confirmBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    if (callback) callback(true);
+                };
+                buttonsContainer.appendChild(confirmBtn);
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // --- Gemini API Call with Exponential Backoff ---
+        // Helper functions for UI interaction
+        function showLoading() {
+            const spinner = document.getElementById('loadingSpinner');
+            const btnText = document.getElementById('analyzeBtnText');
+            const btn = document.getElementById('analyzeBtn');
+
+            btnText.textContent = 'Analyzing...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+
+            document.getElementById('analysisResult').classList.add('hidden');
+            document.getElementById('analysisPlaceholder').classList.add('hidden');
+        }
+
+        function hideLoading(success) {
+            const spinner = document.getElementById('loadingSpinner');
+            const btnText = document.getElementById('analyzeBtnText');
+            const btn = document.getElementById('analyzeBtn');
+
+            btnText.textContent = 'Get Weekly Analysis';
+            spinner.classList.add('hidden');
+            btn.disabled = false;
+            
+            if (success) {
+                document.getElementById('analysisResult').classList.remove('hidden');
+            } else {
+                document.getElementById('analysisPlaceholder').classList.remove('hidden');
+            }
+            lucide.createIcons(); // Re-render icons after change
+        }
+        
+        async function callGeminiApi(payload) {
+            const maxRetries = 5;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(`${API_URL}?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < maxRetries - 1) {
+                        // Too many requests, retry with exponential backoff
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw new Error(`Gemini API Error after ${maxRetries} attempts: ${error.message}`);
+                    }
+                    // Other error, not 429, retry if necessary, or just wait before next try
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        async function generateWeeklyAnalysis() {
+            showLoading();
+            
+            try {
+                // Ensure entries are sorted by date
+                const sortedEntries = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const last7Days = sortedEntries.slice(-7);
+                
+                if (last7Days.length === 0) {
+                    showModal('Analysis Failed', 'No data logged yet. Please log at least one entry to get an analysis.', false);
+                    hideLoading(false);
+                    return;
+                }
+
+                // 1. Calculate Metrics
+                const totalCalories = last7Days.reduce((sum, e) => sum + e.total, 0);
+                const avgCalories = Math.round(totalCalories / last7Days.length);
+                const maxCalories = Math.max(...last7Days.map(e => e.total));
+                const minCalories = Math.min(...last7Days.map(e => e.total));
+                
+                const weightEntries = last7Days.filter(e => e.weight !== null);
+                let weightChange = null;
+                if (weightEntries.length >= 2) {
+                    const startWeight = weightEntries[0].weight;
+                    const endWeight = weightEntries[weightEntries.length - 1].weight;
+                    weightChange = (endWeight - startWeight).toFixed(1); // Positive = gain, Negative = loss
+                }
+
+                // 2. Prepare Detailed Prompt
+                const systemPrompt = `You are a friendly, non-judgmental, certified nutrition coach focused on behavior change. Your goal is to provide a concise (under 100 words) summary of the user's weekly performance and a single, actionable recommendation. Do not use markdown headers or bullet points. Speak in a clear, encouraging tone.`;
+                
+                let userQuery = `Analyze the user's last ${last7Days.length} days of nutrition data. The user's daily calorie target is ${dailyTarget} kcal.`;
+                userQuery += `\n\nWeekly Metrics:\n`;
+                userQuery += `- Avg Daily Calorie Intake: ${avgCalories} kcal\n`;
+                userQuery += `- Target Match: ${avgCalories > dailyTarget ? 'Above Target' : 'Below/At Target'}\n`;
+                userQuery += `- Calorie Range: ${minCalories} kcal (min) to ${maxCalories} kcal (max)\n`;
+                
+                if (weightChange !== null) {
+                    userQuery += `- Weight Change over period: ${Math.abs(weightChange)} kg ${weightChange >= 0 ? 'gained' : 'lost'}.\n`;
+                } else {
+                    userQuery += `- Weight data insufficient for change analysis (Requires at least 2 entries with weight).\n`;
+                }
+                
+                userQuery += `\nBased on these facts, provide a friendly summary and one specific, practical tip. Focus on consistency and hitting the target.`;
+
+                // 3. Call API (using Google Search grounding for potentially related nutrition tips)
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    tools: [{ "google_search": {} }],
+                };
+
+                const result = await callGeminiApi(payload);
+                
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const text = candidate.content.parts[0].text;
+                    document.getElementById('analysisText').innerText = text;
+
+                    // Extract grounding sources
+                    let sources = [];
+                    const groundingMetadata = candidate.groundingMetadata;
+                    const sourcesDiv = document.getElementById('analysisSources');
+                    const sourcesList = document.getElementById('analysisSourcesList');
+                    sourcesList.innerHTML = '';
+
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attribution => ({
+                                uri: attribution.web?.uri,
+                                title: attribution.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title);
+                    }
+                    
+                    if (sources.length > 0) {
+                        sourcesDiv.classList.remove('hidden');
+                        sources.forEach(source => {
+                            const link = document.createElement('a');
+                            link.href = source.uri;
+                            link.target = '_blank';
+                            link.className = 'block text-xs truncate hover:text-orange-600 transition-colors';
+                            link.innerText = source.title;
+                            sourcesList.appendChild(link);
+                        });
+                    } else {
+                         sourcesDiv.classList.add('hidden');
+                    }
+
+                    hideLoading(true);
+
+                } else {
+                    throw new Error("Invalid response structure or no content from Gemini API.");
+                }
+
+            } catch (error) {
+                console.error("Gemini Analysis Error:", error);
+                showModal('Analysis Failed', 'Sorry, the AI analysis failed. Please check the console for details.', false);
+                document.getElementById('analysisText').innerText = 'Error loading analysis.';
+                hideLoading(false);
+            }
+        }
+        // --- End Gemini Functions ---
+
+
+        // --- Core Functions ---
+        
+        function loadEntryByDate(date) {
+            const entry = entries.find(e => e.date === date);
+            const inputs = {
+                weight: document.getElementById('inWeight'),
+                bk: document.getElementById('inBk'),
+                sn1: document.getElementById('inSn1'),
+                lu: document.getElementById('inLu'),
+                sn2: document.getElementById('inSn2'),
+                di: document.getElementById('inDi'),
+            };
+
+            if (entry) {
+                inputs.weight.value = entry.weight || '';
+                inputs.bk.value = entry.bk;
+                inputs.sn1.value = entry.sn1;
+                inputs.lu.value = entry.lu;
+                inputs.sn2.value = entry.sn2;
+                inputs.di.value = entry.di;
+            } else {
+                inputs.weight.value = '';
+                inputs.bk.value = '';
+                inputs.sn1.value = '';
+                inputs.lu.value = '';
+                inputs.sn2.value = '';
+                inputs.di.value = '';
+            }
+        }
+
+        function updateTarget(val) {
+            dailyTarget = parseInt(val) || 2000;
+            localStorage.setItem(TARGET_KEY, dailyTarget);
+            renderStats(); 
+            renderTrendChart(); 
+        }
+
+        function addEntry() {
+            const date = document.getElementById('inDate').value;
+            if (!date) return showModal('Error', 'Please select a date.', false);
+
+            const weight = parseFloat(document.getElementById('inWeight').value) || null;
+            const bk = parseInt(document.getElementById('inBk').value) || 0;
+            const sn1 = parseInt(document.getElementById('inSn1').value) || 0;
+            const lu = parseInt(document.getElementById('inLu').value) || 0;
+            const sn2 = parseInt(document.getElementById('inSn2').value) || 0;
+            const di = parseInt(document.getElementById('inDi').value) || 0;
+            const total = bk + sn1 + lu + sn2 + di;
+            
+            // Allow entry if either weight OR calories are present
+            if (total === 0 && weight === null) {
+                 return showModal('Warning', 'Please enter either calories or weight.', false);
+            }
+
+            const newEntry = { date, weight, bk, sn1, lu, sn2, di, total };
+
+            const existingIndex = entries.findIndex(e => e.date === date);
+            if (existingIndex >= 0) {
+                entries[existingIndex] = newEntry;
+            } else {
+                entries.push(newEntry);
+            }
+
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            saveData();
+            loadEntryByDate(date); 
+            renderAll();
+        }
+
+        function deleteEntry(date) {
+            // Updated to use the new date format helper
+            showModal('Confirm Deletion', 'Delete entry for ' + formatDate(date) + '?', true, (confirmed) => {
+                if (confirmed) {
+                    entries = entries.filter(e => e.date !== date);
+                    saveData();
+                    if (document.getElementById('inDate').value === date) {
+                        // Clear inputs if the currently displayed date was deleted
+                        document.getElementById('inWeight').value = '';
+                        document.getElementById('inBk').value = '';
+                        document.getElementById('inSn1').value = '';
+                        document.getElementById('inLu').value = '';
+                        document.getElementById('inSn2').value = '';
+                        document.getElementById('inDi').value = '';
+                    }
+                    renderAll();
+                }
+            });
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        function exportCSV() {
+            const headers = ['Date', 'Weight (kg)', 'Breakfast (kcal)', 'Snack 1 (kcal)', 'Lunch (kcal)', 'Snack 2 (kcal)', 'Dinner (kcal)', 'Total Calories (kcal)'];
+            const rows = entries.map(e => [e.date, e.weight || '', e.bk, e.sn1, e.lu, e.sn2, e.di, e.total].join(','));
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "nutrition_log.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- Rendering ---
+
+        function renderAll() {
+            renderTable();
+            renderStats();
+            renderTrendChart();
+            renderBreakdownChart();
+            renderWeightChart();
+            lucide.createIcons();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            const displayEntries = [...entries].reverse();
+
+            if (displayEntries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8" style="color: var(--medium-text);">No entries found. Start logging!</td></tr>`;
+                return;
+            }
+
+            displayEntries.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-400 hover:bg-[#F2F2F2] transition-colors group";
+                tr.innerHTML = `
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray); font-size: 0.75rem;">${formatDate(row.date)}</td>
+                    <td class="py-3 px-2 border-r border-gray-400 font-semibold" style="color: var(--dark-gray);">${row.weight ? row.weight : '-'}</td>
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray);">${row.bk}</td>
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray);">${row.sn1}</td>
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray);">${row.lu}</td>
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray);">${row.sn2}</td>
+                    <td class="py-3 px-2 border-r border-gray-400" style="color: var(--dark-gray);">${row.di}</td>
+                    <td class="py-3 px-2 font-bold border-r border-gray-400" style="color: var(--accent-orange);">${row.total}</td>
+                    <td class="py-3 px-2 text-right">
+                        <button onclick="deleteEntry('${row.date}')" class="text-gray-600 hover:text-[#FF8C00] transition-colors p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderStats() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayEntry = entries.find(e => e.date === todayStr);
+            const todayTotal = todayEntry ? todayEntry.total : 0;
+            const todayTargetText = document.getElementById('statTodaySub');
+            
+            document.getElementById('statToday').innerText = todayTotal;
+            todayTargetText.innerText = `/ ${dailyTarget} kcal target`;
+            // Updated statTodaySub to explicitly mention kcal
+
+            const recent = entries.slice(-7);
+            const avg = recent.length ? Math.round(recent.reduce((sum, e) => sum + e.total, 0) / recent.length) : 0;
+            document.getElementById('statAvg').innerText = avg;
+
+            const percent = Math.min(Math.round((todayTotal / dailyTarget) * 100), 100);
+            const isOver = todayTotal > dailyTarget;
+            
+            document.getElementById('progressPercent').innerText = percent + "%";
+            document.getElementById('progressPercent').style.color = isOver ? '#FF8C00' : 'var(--dark-gray)';
+            
+            const bar = document.getElementById('progressBar');
+            bar.style.width = percent + "%";
+            bar.style.backgroundColor = '#FF8C00';
+        }
+
+        function renderTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const chartData = entries.slice(-14); // Last 14 entries
+            // Using the chart-specific formatter for cleaner axis labels
+            const labels = chartData.map(e => formatChartDate(e.date)); 
+            const values = chartData.map(e => e.total);
+
+            if (trendChartInst) trendChartInst.destroy();
+
+            trendChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Calories',
+                            data: values,
+                            borderColor: '#FF8C00',
+                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.3,
+                            pointBackgroundColor: 'var(--card-bg)',
+                            pointBorderColor: '#FF8C00',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            fill: true
+                        },
+                        {
+                            label: 'Target',
+                            data: Array(labels.length).fill(dailyTarget),
+                            borderColor: '#666666',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'var(--dark-gray)',
+                            titleColor: 'var(--bg-light)',
+                            bodyColor: 'var(--bg-light)',
+                            borderColor: 'var(--medium-text)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: 'var(--medium-text)' } },
+                        y: { 
+                            grid: { color: 'var(--border-light)' }, 
+                            ticks: { color: 'var(--medium-text)' }, 
+                            beginAtZero: true,
+                            title: { display: true, text: 'kcal', color: 'var(--medium-text)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBreakdownChart() {
+            const ctx = document.getElementById('breakdownChart').getContext('2d');
+            const totals = { bk: 0, sn1: 0, lu: 0, sn2: 0, di: 0 };
+            entries.forEach(e => {
+                totals.bk += e.bk;
+                totals.sn1 += e.sn1;
+                totals.lu += e.lu;
+                totals.sn2 += e.sn2;
+                totals.di += e.di;
+            });
+
+            const dataValues = [totals.bk, totals.sn1, totals.lu, totals.sn2, totals.di];
+            const bgColors = ['#FF8C00', '#FFB366', '#FFD9B3', '#CC6D00', '#995200'];
+            const labels = ['Breakfast', 'Snack 1', 'Lunch', 'Snack 2', 'Dinner'];
+
+            if (breakdownChartInst) breakdownChartInst.destroy();
+
+            document.getElementById('legendContainer').innerHTML = labels.map((label, i) => `
+                <div class="flex items-center">
+                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: ${bgColors[i]}"></span>
+                    ${label}
+                </div>
+            `).join('');
+
+            breakdownChartInst = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { 
+                            backgroundColor: 'var(--dark-gray)', 
+                            bodyColor: 'var(--bg-light)', 
+                            borderColor: 'var(--medium-text)', 
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.raw !== null) {
+                                        label += context.raw.toLocaleString() + ' kcal';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Weekly Weight Logic ---
+        function renderWeightChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            
+            // 1. Get entries from last 30 days
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 30);
+            
+            const recentEntries = entries.filter(e => new Date(e.date) >= cutoffDate && e.weight !== null);
+
+            // 2. Group by Week
+            // We'll use the "Week Number" or simply group by "Week Starting On"
+            const weeks = {};
+            
+            recentEntries.forEach(e => {
+                const d = new Date(e.date.replace(/-/g, '/'));
+                // Get Monday of that week
+                const day = d.getDay() || 7; 
+                if(day !== 1) d.setHours(-24 * (day - 1));
+                
+                const weekKey = d.toISOString().split('T')[0]; // "2023-11-20"
+                if (!weeks[weekKey]) weeks[weekKey] = [];
+                weeks[weekKey].push(e.weight);
+            });
+
+            // 3. Calculate Averages
+            const labels = Object.keys(weeks).sort();
+            const values = labels.map(weekStart => {
+                const weights = weeks[weekStart];
+                const sum = weights.reduce((a, b) => a + b, 0);
+                return (sum / weights.length).toFixed(1);
+            });
+            
+            // Format labels to be concise for chart readability (e.g., "27 Nov")
+            const displayLabels = labels.map(l => formatChartDate(l));
+
+            if (weightChartInst) weightChartInst.destroy();
+
+            weightChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: displayLabels,
+                    datasets: [{
+                        label: 'Avg Weight',
+                        data: values,
+                        borderColor: '#333333', // Dark gray for weight contrast
+                        borderWidth: 2,
+                        backgroundColor: 'rgba(51, 51, 51, 0.1)',
+                        tension: 0.1,
+                        pointBackgroundColor: '#FF8C00', // Orange points
+                        pointRadius: 4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'var(--dark-gray)', bodyColor: 'var(--bg-light)' }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: 'var(--medium-text)' } },
+                        y: { 
+                            grid: { color: 'var(--border-light)' }, 
+                            ticks: { color: 'var(--medium-text)' },
+                            title: { display: true, text: 'kg', color: 'var(--medium-text)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // --- Service Worker Registration (NEW) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/serviceworker.js', {scope: './'}).then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+            });
+        }
+        // --- End Service Worker Registration ---
+
+    </script>
+</body>
+</html>
